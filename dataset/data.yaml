@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 4
+names: ['Rat', 'Rat_Cat_Dog', 'cat', 'dog']
+
+roboflow:
+  workspace: mayugam
+  project: animal-detection-bsjah
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/mayugam/animal-detection-bsjah/dataset/2

@@ -1,0 +1,28 @@
+# Virtual Environment
+.venv/
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Temporary Files
+tempCodeRunnerFile.py
+
+# Uploaded Images
+uploads/
+
+# YOLO Output
+runs/
+
+# Reports
+results.csv
+Animal_Report.pdf
+
+# Logs
+*.log

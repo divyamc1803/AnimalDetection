@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Register</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card" style="max-width:600px; margin:auto; margin-top:60px;">
+
+        <h1>Create Account</h1>
+
+        <form action="/register" method="POST">
+
+            <label>Username</label>
+
+            <br><br>
+
+            <input
+                type="text"
+                name="username"
+                required
+                style="width:100%;padding:12px;">
+
+            <br><br>
+
+            <label>Email</label>
+
+            <br><br>
+
+            <input
+                type="email"
+                name="email"
+                required
+                style="width:100%;padding:12px;">
+
+            <br><br>
+
+            <label>Password</label>
+
+            <br><br>
+
+            <input
+                type="password"
+                name="password"
+                required
+                style="width:100%;padding:12px;">
+
+            <br><br>
+
+            <button
+                type="submit"
+                style="width:100%;">
+
+                Register
+
+            </button>
+
+        </form>
+
+        <br>
+
+        <p style="text-align:center;">
+
+            Already have an account?
+
+            <a href="/login">
+
+                Login Here
+
+            </a>
+
+        </p>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Animal Detection System</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+
+        <div>
+
+            <h1>🐾 Animal Detection System</h1>
+
+            <p class="subtitle">
+                AI Powered Animal Detection using YOLOv11
+            </p>
+
+        </div>
+
+        <div style="text-align:right;">
+
+            <p>
+                <strong>Welcome, {{ username }}</strong>
+            </p>
+
+            <a href="/logout">
+                <button>Logout</button>
+            </a>
+
+        </div>
+
+    </div>
+
+    <!-- Upload Images -->
+
+    <div class="card">
+
+        <h2>📁 Upload Images</h2>
+
+        <form action="/upload" method="POST" enctype="multipart/form-data">
+
+            <input
+                type="file"
+                name="images"
+                multiple
+                accept=".jpg,.jpeg,.png"
+                required>
+
+            <br><br>
+
+            <button type="submit">
+                Upload Images
+            </button>
+
+        </form>
+
+    </div>
+
+    <!-- Detection -->
+
+    <div class="card">
+
+        <h2>🤖 Detection</h2>
+
+        <button onclick="window.location.href='/detect'">
+            Detect Animals
+        </button>
+
+        <button onclick="window.location.href='/webcam'">
+            Webcam Detection
+        </button>
+
+        <button onclick="window.location.href='/download_csv'">
+            Download CSV
+        </button>
+
+        <button onclick="window.location.href='/download_pdf'">
+            Download PDF
+        </button>
+
+        <button onclick="window.location.href='/clear_session'">
+            🗑️ Clear Session
+        </button>
+
+    </div>
+
+    <!-- Webcam -->
+
+    {% if webcam %}
+
+    <div class="card">
+
+        <h2>🎥 Live Webcam Detection</h2>
+
+        <img
+            src="{{ url_for('video_feed') }}"
+            width="900"
+            style="border-radius:15px;">
+
+    </div>
+
+    {% endif %}
+
+    <!-- Detection Results -->
+
+    <div class="card">
+
+        <h2>📋 Detection Results</h2>
+
+        {% if detections %}
+
+        <table>
+
+            <tr>
+                <th>Image</th>
+                <th>Animal</th>
+                <th>Confidence</th>
+                <th>Status</th>
+                <th>Inference Time</th>
+            </tr>
+
+            {% for d in detections %}
+
+            <tr>
+                <td>{{ d.image }}</td>
+                <td>{{ d.animal }}</td>
+                <td>{{ d.confidence }}</td>
+                <td>{{ d.status }}</td>
+                <td>{{ d.time }}</td>
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+        {% else %}
+
+        <p>No detections available.</p>
+
+        {% endif %}
+
+    </div>
+
+    <!-- Animal Count -->
+
+    <div class="card">
+
+        <h2>🐾 Animal Count</h2>
+
+        {% if animal_count %}
+
+        <table>
+
+            <tr>
+                <th>Animal</th>
+                <th>Count</th>
+            </tr>
+
+            {% for animal, count in animal_count.items() %}
+
+            <tr>
+                <td>{{ animal }}</td>
+                <td>{{ count }}</td>
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+        {% else %}
+
+        <p>No animal count available.</p>
+
+        {% endif %}
+
+    </div>
+
+    <!-- Project Summary -->
+
+    <div class="card">
+
+        <h2>📊 Project Summary</h2>
+
+        {% if summary %}
+
+        <table>
+
+            <tr>
+                <th>Total Images Processed</th>
+                <td>{{ summary.images }}</td>
+            </tr>
+
+            <tr>
+                <th>Total Animals Detected</th>
+                <td>{{ summary.animals }}</td>
+            </tr>
+
+            <tr>
+                <th>Unique Animal Types</th>
+                <td>{{ summary.unique }}</td>
+            </tr>
+
+            <tr>
+                <th>Average Confidence</th>
+                <td>{{ summary.confidence }}</td>
+            </tr>
+
+            <tr>
+                <th>Average Inference Time</th>
+                <td>{{ summary.time }}</td>
+            </tr>
+
+        </table>
+
+        {% else %}
+
+        <p>No summary available.</p>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+</body>
+
+</html>l:

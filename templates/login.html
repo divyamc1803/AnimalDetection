@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Login</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card" style="max-width:600px; margin:auto; margin-top:60px;">
+
+        <h1>Login</h1>
+
+        <form action="/login" method="POST">
+
+            <label>Username</label>
+
+            <br><br>
+
+            <input
+                type="text"
+                name="username"
+                required
+                style="width:100%;padding:12px;">
+
+            <br><br>
+
+            <label>Password</label>
+
+            <br><br>
+
+            <input
+                type="password"
+                name="password"
+                required
+                style="width:100%;padding:12px;">
+
+            <br><br>
+
+            <button
+                type="submit"
+                style="width:100%;">
+
+                Login
+
+            </button>
+
+        </form>
+
+        <br>
+
+        <p style="text-align:center;">
+
+            Don't have an account?
+
+            <a href="/register">
+
+                Register Here
+
+            </a>
+
+        </p>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>
