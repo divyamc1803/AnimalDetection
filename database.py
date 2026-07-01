@@ -1,28 +1,24 @@
-import pyodbc
+import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# ---------------- SQL SERVER CONNECTION ----------------
+# ---------------- MYSQL CONNECTION ----------------
 
-SERVER = "localhost,1433"
-DATABASE = "AnimalDetectionDB"
-USERNAME = "sa"
-PASSWORD = "DB_Password"
-
-connection_string = (
-    "DRIVER={ODBC Driver 18 for SQL Server};"
-    f"SERVER={SERVER};"
-    f"DATABASE={DATABASE};"
-    f"UID={USERNAME};"
-    f"PWD={PASSWORD};"
-    "TrustServerCertificate=yes;"
-)
+HOST = "localhost"
+DATABASE = "animal_detection"
+USERNAME = "root"
+PASSWORD = ""   # Leave empty if your root user has no password
 
 
 # ---------------- CONNECT DATABASE ----------------
 
 def connect_db():
 
-    return pyodbc.connect(connection_string)
+    return mysql.connector.connect(
+        host=HOST,
+        user=USERNAME,
+        password=PASSWORD,
+        database=DATABASE
+    )
 
 
 # ---------------- REGISTER USER ----------------
@@ -43,18 +39,20 @@ def register_user(username, email, password):
             """
             INSERT INTO Users
             (Username, Email, PasswordHash)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
             """,
-            username,
-            email,
-            hashed_password
+            (
+                username,
+                email,
+                hashed_password
+            )
         )
 
         conn.commit()
 
         return True
 
-    except pyodbc.Error:
+    except mysql.connector.Error:
 
         return False
 
@@ -75,9 +73,9 @@ def login_user(username, password):
         """
         SELECT Username, PasswordHash
         FROM Users
-        WHERE Username = ?
+        WHERE Username = %s
         """,
-        username
+        (username,)
     )
 
     row = cursor.fetchone()
@@ -86,11 +84,9 @@ def login_user(username, password):
     conn.close()
 
     if row is None:
-
         return None
 
     if check_password_hash(row[1], password):
-
         return row[0]
 
     return None
@@ -110,9 +106,9 @@ def get_user(username):
                Email,
                CreatedAt
         FROM Users
-        WHERE Username = ?
+        WHERE Username = %s
         """,
-        username
+        (username,)
     )
 
     row = cursor.fetchone()
@@ -120,4 +116,4 @@ def get_user(username):
     cursor.close()
     conn.close()
 
-    return row 
+    return row
