@@ -7,15 +7,22 @@ from flask import (
     Response,
     session
 )
+from flasgger import Swagger
 
 from detector import detect_animals
 from report import generate_pdf
 from webcam import generate_frames
-from database import register_user, login_user
+from database import (
+    register_user,
+    login_user,
+    get_user_id,
+    save_uploaded_image
+)
 
 import os
 
 app = Flask(__name__)
+swagger = Swagger(app)
 
 app.secret_key = "AnimalDetectionSecretKey123"
 
@@ -107,6 +114,8 @@ def logout():
 
 # ---------------- UPLOAD ----------------
 
+# ---------------- UPLOAD ----------------
+
 @app.route("/upload", methods=["POST"])
 def upload():
 
@@ -114,6 +123,9 @@ def upload():
         return redirect("/login")
 
     files = request.files.getlist("images")
+
+    # Get the logged-in user's ID
+    user_id = get_user_id(session["user"])
 
     for file in files:
 
@@ -126,9 +138,14 @@ def upload():
 
             file.save(filepath)
 
+            # Save image details to MySQL
+            save_uploaded_image(
+                user_id,
+                file.filename,
+                filepath
+            )
+
     return redirect("/")
-
-
 # ---------------- DETECT ----------------
 
 @app.route("/detect")
@@ -258,7 +275,30 @@ def clear_session():
 
 
 # ---------------- RUN ----------------
+# ---------------- TEST API ----------------
 
+@app.route("/api/test", methods=["GET"])
+def api_test():
+    """
+    Test API
+    ---
+    tags:
+      - Testing
+    summary: Test if Swagger is working.
+    responses:
+      200:
+        description: Swagger is working.
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Swagger is working!
+    """
+
+    return {
+        "message": "Swagger is working!"
+    }
 if __name__ == "__main__":
 
     app.run(debug=True)

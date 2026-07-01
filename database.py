@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 HOST = "localhost"
 DATABASE = "animal_detection"
 USERNAME = "root"
-PASSWORD = ""   # Leave empty if your root user has no password
+PASSWORD = ""
 
 
 # ---------------- CONNECT DATABASE ----------------
@@ -117,3 +117,56 @@ def get_user(username):
     conn.close()
 
     return row
+
+
+# ---------------- GET USER ID ----------------
+
+def get_user_id(username):
+
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT UserID
+        FROM Users
+        WHERE Username = %s
+        """,
+        (username,)
+    )
+
+    row = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if row:
+        return row[0]
+
+    return None
+
+
+# ---------------- SAVE UPLOADED IMAGE ----------------
+
+def save_uploaded_image(user_id, image_name, image_path):
+
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO UploadedImages
+        (UserID, ImageName, ImagePath)
+        VALUES (%s, %s, %s)
+        """,
+        (
+            user_id,
+            image_name,
+            image_path
+        )
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
