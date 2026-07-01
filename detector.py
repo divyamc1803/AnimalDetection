@@ -1,6 +1,21 @@
 import csv
 from ultralytics import YOLO
 
+# Only detect persons and animals (COCO class IDs)
+ALLOWED_CLASSES = [
+    0,   # person
+    14,  # bird
+    15,  # cat
+    16,  # dog
+    17,  # horse
+    18,  # sheep
+    19,  # cow
+    20,  # elephant
+    21,  # bear
+    22,  # zebra
+    23   # giraffe
+]
+
 
 def detect_animals(source="images"):
 
@@ -12,7 +27,8 @@ def detect_animals(source="images"):
         source=source,
         save=False,
         show=False,
-        conf=0.5
+        conf=0.5,
+        classes=ALLOWED_CLASSES
     )
 
     # Dictionary to count animals
@@ -70,7 +86,7 @@ def detect_animals(source="images"):
                 f"{'0%':<15}"
                 f"{'None':<15}"
                 f"{time:<12.1f}"
-                f"No animal detected"
+                f"No animal/person detected"
             )
 
             writer.writerow([
@@ -79,12 +95,12 @@ def detect_animals(source="images"):
                 "0%",
                 "None",
                 f"{time:.1f}",
-                "No animal detected"
+                "No animal/person detected"
             ])
 
             continue
 
-        # Detect every animal
+        # Process detections
         for box in result.boxes:
 
             cls = int(box.cls[0])
@@ -101,7 +117,7 @@ def detect_animals(source="images"):
             else:
                 status = "Low"
 
-            # Count animals
+            # Count detections
             if name in animal_count:
                 animal_count[name] += 1
             else:
@@ -110,7 +126,6 @@ def detect_animals(source="images"):
             total_animals += 1
             total_confidence += conf
 
-            # Save detections
             detections.append({
                 "image": filename,
                 "animal": name,
@@ -137,10 +152,10 @@ def detect_animals(source="images"):
                 f"Detected {name}"
             ])
 
-    # Print animal count
+    # Print count
     print("\n")
     print("-" * 40)
-    print(f"{'Animal':<20}{'Count'}")
+    print(f"{'Detected Class':<20}{'Count'}")
     print("-" * 40)
 
     for animal, count in animal_count.items():
@@ -165,18 +180,16 @@ def detect_animals(source="images"):
     print("PROJECT SUMMARY")
     print("=" * 55)
     print(f"Total Images Processed : {total_images}")
-    print(f"Total Animals Detected : {total_animals}")
-    print(f"Unique Animal Types    : {len(animal_count)}")
+    print(f"Total Detections       : {total_animals}")
+    print(f"Unique Classes         : {len(animal_count)}")
     print(f"Average Confidence     : {average_confidence:.2f}%")
     print(f"Average Inference Time : {average_time:.2f} ms")
     print("=" * 55)
 
-    # Close CSV
     csv_file.close()
 
     print("\nCSV report saved successfully as 'results.csv'")
 
-    # Summary dictionary
     summary = {
         "images": total_images,
         "animals": total_animals,

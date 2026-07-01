@@ -78,9 +78,9 @@
             Detect Animals
         </button>
 
-        <button onclick="window.location.href='/webcam'">
-            Webcam Detection
-        </button>
+        <button onclick="toggleWebcam()">
+    🎥 Webcam Detection
+</button>
 
         <button onclick="window.location.href='/download_csv'">
             Download CSV
@@ -98,20 +98,19 @@
 
     <!-- Webcam -->
 
-    {% if webcam %}
+    <div
+    class="card"
+    id="webcamCard"
+    style="display:none;">
 
-    <div class="card">
+    <h2>🎥 Live Webcam Detection</h2>
 
-        <h2>🎥 Live Webcam Detection</h2>
+    <img
+        id="webcamFeed"
+        width="900"
+        style="border-radius:15px;">
 
-        <img
-            src="{{ url_for('video_feed') }}"
-            width="900"
-            style="border-radius:15px;">
-
-    </div>
-
-    {% endif %}
+</div>
 
     <!-- Detection Results -->
 
@@ -233,6 +232,37 @@
     </div>
 
 </div>
+
+<script>
+
+let webcamRunning = false;
+
+function toggleWebcam() {
+
+    const card = document.getElementById("webcamCard");
+    const img = document.getElementById("webcamFeed");
+
+    if (!webcamRunning) {
+
+        img.src = "/video_feed";
+
+        card.style.display = "block";
+
+        webcamRunning = true;
+
+    } else {
+
+        img.src = "";
+
+        card.style.display = "none";
+
+        webcamRunning = false;
+
+    }
+
+}
+
+</script>
 
 </body>
 

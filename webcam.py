@@ -4,38 +4,39 @@ from ultralytics import YOLO
 # Load YOLO model once
 model = YOLO("yolo11n.pt")
 
-# Open webcam
-camera = cv2.VideoCapture(0)
-
 
 def generate_frames():
 
-    while True:
+    camera = cv2.VideoCapture(0)
 
-        success, frame = camera.read()
+    try:
 
-        if not success:
-            break
+        while True:
 
-        # Run YOLO
-        results = model.predict(
-            source=frame,
-            conf=0.5,
-            verbose=False
-        )
+            success, frame = camera.read()
 
-        # Draw bounding boxes
-        annotated_frame = results[0].plot()
+            if not success:
+                break
 
-        # Convert image to JPEG
-        ret, buffer = cv2.imencode(".jpg", annotated_frame)
+            results = model.predict(
+                source=frame,
+                conf=0.5,
+                verbose=False
+            )
 
-        frame = buffer.tobytes()
+            annotated_frame = results[0].plot()
 
-        # Send frame to browser
-        yield (
-            b'--frame\r\n'
-            b'Content-Type: image/jpeg\r\n\r\n'
-            + frame +
-            b'\r\n'
-        )
+            ret, buffer = cv2.imencode(".jpg", annotated_frame)
+
+            frame = buffer.tobytes()
+
+            yield (
+                b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n'
+                + frame +
+                b'\r\n'
+            )
+
+    finally:
+
+        camera.release()
