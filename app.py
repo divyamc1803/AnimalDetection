@@ -22,6 +22,7 @@ from database import (
     get_upload_history,
     get_detection_results,
     delete_uploaded_image,
+    clear_upload_history,
     get_user_profile
 )
 
@@ -172,6 +173,20 @@ def detect():
         animal_count=results["animal_count"],
         summary=results["summary"],
         webcam=False,
+        username=session["user"]
+    )
+
+
+# ---------------- HISTORY PAGE ----------------
+
+@app.route("/history")
+def history_page():
+
+    if "user" not in session:
+        return redirect("/login")
+
+    return render_template(
+        "history.html",
         username=session["user"]
     )
 
@@ -490,6 +505,8 @@ def api_detect():
         }), 400
 
     results = detect_animals("uploads")
+    graph_path = generate_bar_graph(results["animal_count"])
+    results["graph"] = graph_path
 
     return jsonify(results), 200
 
@@ -500,15 +517,56 @@ def api_history():
     ---
     tags:
       - Images
-    summary: View uploaded image history.
+    summary: View uploaded image history for the current user.
     responses:
       200:
         description: Upload history.
+      401:
+        description: User not logged in.
     """
 
-    history = get_upload_history()
+    if "user" not in session:
+        return jsonify({
+            "success": False,
+            "message": "Please login first."
+        }), 401
+
+    user_id = get_user_id(session["user"])
+
+    history = get_upload_history(user_id)
 
     return jsonify(history), 200
+
+@app.route("/api/history", methods=["DELETE"])
+def api_clear_history():
+    """
+    Clear All History
+    ---
+    tags:
+      - Images
+    summary: Delete all uploaded images and detection results for the current user.
+    responses:
+      200:
+        description: History cleared.
+      401:
+        description: User not logged in.
+    """
+
+    if "user" not in session:
+        return jsonify({
+            "success": False,
+            "message": "Please login first."
+        }), 401
+
+    user_id = get_user_id(session["user"])
+
+    deleted = clear_upload_history(user_id)
+
+    return jsonify({
+        "success": True,
+        "message": f"Cleared {deleted} history entries.",
+        "deleted": deleted
+    }), 200
 
 @app.route("/api/results/<int:image_id>", methods=["GET"])
 def api_results(image_id):
@@ -561,7 +619,7 @@ def api_delete_image(image_id):
     ---
     tags:
       - Images
-    summary: Delete uploaded image.
+    summary: Delete uploaded image (must belong to the current user).
     parameters:
       - in: path
         name: image_id
@@ -570,9 +628,27 @@ def api_delete_image(image_id):
     responses:
       200:
         description: Image deleted.
+      401:
+        description: User not logged in.
+      404:
+        description: Image not found or not owned by this user.
     """
 
-    delete_uploaded_image(image_id)
+    if "user" not in session:
+        return jsonify({
+            "success": False,
+            "message": "Please login first."
+        }), 401
+
+    user_id = get_user_id(session["user"])
+
+    deleted = delete_uploaded_image(image_id, user_id)
+
+    if not deleted:
+        return jsonify({
+            "success": False,
+            "message": "Image not found or you don't have permission to delete it."
+        }), 404
 
     return jsonify({
         "success": True,
@@ -617,4 +693,4 @@ def download_graph():
 
     return "No graph generated."
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=8000)

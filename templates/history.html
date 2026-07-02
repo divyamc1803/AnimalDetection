@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+            <h1>🕒 Upload History</h1>
+            <p class="subtitle">All images uploaded by {{ username }}</p>
+        </div>
+    </div>
+
+    <div class="card">
+
+        <button id="clearHistoryBtn">🗑️ Clear All History</button>
+        <button id="refreshHistoryBtn">🔄 Refresh</button>
+
+        <div id="historyMessage"></div>
+
+        <div id="historyContainer">
+            <p>Loading history...</p>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+
+</html>

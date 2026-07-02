@@ -21,7 +21,9 @@
 
         <h1>Login</h1>
 
-        <form action="/login" method="POST">
+        <div id="loginMessage"></div>
+
+        <form id="loginForm">
 
             <label>Username</label>
 
@@ -30,6 +32,7 @@
             <input
                 type="text"
                 name="username"
+                id="username"
                 required
                 style="width:100%;padding:12px;">
 
@@ -42,6 +45,7 @@
             <input
                 type="password"
                 name="password"
+                id="password"
                 required
                 style="width:100%;padding:12px;">
 
@@ -49,6 +53,7 @@
 
             <button
                 type="submit"
+                id="loginBtn"
                 style="width:100%;">
 
                 Login
@@ -74,6 +79,8 @@
     </div>
 
 </div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 
 </body>
 

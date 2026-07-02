@@ -21,7 +21,9 @@
 
         <h1>Create Account</h1>
 
-        <form action="/register" method="POST">
+        <div id="registerMessage"></div>
+
+        <form id="registerForm">
 
             <label>Username</label>
 
@@ -30,6 +32,7 @@
             <input
                 type="text"
                 name="username"
+                id="username"
                 required
                 style="width:100%;padding:12px;">
 
@@ -42,6 +45,7 @@
             <input
                 type="email"
                 name="email"
+                id="email"
                 required
                 style="width:100%;padding:12px;">
 
@@ -54,6 +58,7 @@
             <input
                 type="password"
                 name="password"
+                id="password"
                 required
                 style="width:100%;padding:12px;">
 
@@ -61,6 +66,7 @@
 
             <button
                 type="submit"
+                id="registerBtn"
                 style="width:100%;">
 
                 Register
@@ -86,6 +92,8 @@
     </div>
 
 </div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 
 </body>
 

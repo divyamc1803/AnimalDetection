@@ -228,7 +228,7 @@ def get_image_id(image_name):
 
 # ---------------- GET UPLOAD HISTORY ----------------
 
-def get_upload_history():
+def get_upload_history(user_id):
 
     conn = connect_db()
     cursor = conn.cursor(dictionary=True)
@@ -241,8 +241,9 @@ def get_upload_history():
             ImagePath,
             UploadedAt
         FROM UploadedImages
+        WHERE UserID = %s
         ORDER BY UploadedAt DESC
-    """)
+    """, (user_id,))
 
     rows = cursor.fetchall()
 
@@ -277,20 +278,52 @@ def get_detection_results(image_id):
 
 # ---------------- DELETE IMAGE ----------------
 
-def delete_uploaded_image(image_id):
+def delete_uploaded_image(image_id, user_id):
 
     conn = connect_db()
     cursor = conn.cursor()
 
     cursor.execute("""
         DELETE FROM UploadedImages
-        WHERE ImageID = %s
-    """, (image_id,))
+        WHERE ImageID = %s AND UserID = %s
+    """, (image_id, user_id))
 
     conn.commit()
 
+    deleted = cursor.rowcount > 0
+
     cursor.close()
     conn.close()
+
+    return deleted
+
+# ---------------- CLEAR ALL HISTORY ----------------
+
+def clear_upload_history(user_id):
+
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    # Remove detection results tied to this user's images first
+    cursor.execute("""
+        DELETE dr FROM DetectionResults dr
+        INNER JOIN UploadedImages ui ON dr.ImageID = ui.ImageID
+        WHERE ui.UserID = %s
+    """, (user_id,))
+
+    cursor.execute("""
+        DELETE FROM UploadedImages
+        WHERE UserID = %s
+    """, (user_id,))
+
+    conn.commit()
+
+    deleted = cursor.rowcount
+
+    cursor.close()
+    conn.close()
+
+    return deleted
 
     # ---------------- GET USER PROFILE ----------------
 

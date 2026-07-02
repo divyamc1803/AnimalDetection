@@ -32,22 +32,27 @@
 
         <h2>📁 Upload Images</h2>
 
-        <form action="/upload" method="POST" enctype="multipart/form-data">
+        <div id="uploadMessage"></div>
+
+        <form id="uploadForm">
 
             <input
                 type="file"
                 name="images"
+                id="imagesInput"
                 multiple
                 accept=".jpg,.jpeg,.png"
                 required>
 
             <br><br>
 
-            <button type="submit">
+            <button type="submit" id="uploadBtn">
                 Upload Images
             </button>
 
         </form>
+
+        <div id="uploadedList"></div>
 
     </div>
 
@@ -56,7 +61,7 @@
 
         <h2>🤖 Detection</h2>
 
-        <button onclick="window.location.href='/detect'">
+        <button id="detectBtn">
             Detect Animals
         </button>
 
@@ -80,6 +85,8 @@
             🗑️ Clear Session
         </button>
 
+        <div id="detectMessage"></div>
+
     </div>
 
     <!-- Webcam -->
@@ -99,37 +106,41 @@
 
         <h2>📋 Detection Results</h2>
 
-        {% if detections %}
+        <div id="detectionResultsContainer">
 
-        <table>
+            {% if detections %}
 
-            <tr>
-                <th>Image</th>
-                <th>Animal</th>
-                <th>Confidence</th>
-                <th>Status</th>
-                <th>Inference Time</th>
-            </tr>
+            <table>
 
-            {% for d in detections %}
+                <tr>
+                    <th>Image</th>
+                    <th>Animal</th>
+                    <th>Confidence</th>
+                    <th>Status</th>
+                    <th>Inference Time</th>
+                </tr>
 
-            <tr>
-                <td>{{ d.image }}</td>
-                <td>{{ d.animal }}</td>
-                <td>{{ d.confidence }}</td>
-                <td>{{ d.status }}</td>
-                <td>{{ d.time }}</td>
-            </tr>
+                {% for d in detections %}
 
-            {% endfor %}
+                <tr>
+                    <td>{{ d.image }}</td>
+                    <td>{{ d.animal }}</td>
+                    <td>{{ d.confidence }}</td>
+                    <td>{{ d.status }}</td>
+                    <td>{{ d.time }}</td>
+                </tr>
 
-        </table>
+                {% endfor %}
 
-        {% else %}
+            </table>
 
-        <p>No detections available.</p>
+            {% else %}
 
-        {% endif %}
+            <p>No detections available.</p>
+
+            {% endif %}
+
+        </div>
 
     </div>
 
@@ -138,31 +149,35 @@
 
         <h2>🐾 Animal Count</h2>
 
-        {% if animal_count %}
+        <div id="animalCountContainer">
 
-        <table>
+            {% if animal_count %}
 
-            <tr>
-                <th>Animal</th>
-                <th>Count</th>
-            </tr>
+            <table>
 
-            {% for animal, count in animal_count.items() %}
+                <tr>
+                    <th>Animal</th>
+                    <th>Count</th>
+                </tr>
 
-            <tr>
-                <td>{{ animal }}</td>
-                <td>{{ count }}</td>
-            </tr>
+                {% for animal, count in animal_count.items() %}
 
-            {% endfor %}
+                <tr>
+                    <td>{{ animal }}</td>
+                    <td>{{ count }}</td>
+                </tr>
 
-        </table>
+                {% endfor %}
 
-        {% else %}
+            </table>
 
-        <p>No animal count available.</p>
+            {% else %}
 
-        {% endif %}
+            <p>No animal count available.</p>
+
+            {% endif %}
+
+        </div>
 
     </div>
 
@@ -171,42 +186,46 @@
 
         <h2>📊 Project Summary</h2>
 
-        {% if summary %}
+        <div id="summaryContainer">
 
-        <table>
+            {% if summary %}
 
-            <tr>
-                <th>Total Images Processed</th>
-                <td>{{ summary.images }}</td>
-            </tr>
+            <table>
 
-            <tr>
-                <th>Total Animals Detected</th>
-                <td>{{ summary.animals }}</td>
-            </tr>
+                <tr>
+                    <th>Total Images Processed</th>
+                    <td>{{ summary.images }}</td>
+                </tr>
 
-            <tr>
-                <th>Unique Animal Types</th>
-                <td>{{ summary.unique }}</td>
-            </tr>
+                <tr>
+                    <th>Total Animals Detected</th>
+                    <td>{{ summary.animals }}</td>
+                </tr>
 
-            <tr>
-                <th>Average Confidence</th>
-                <td>{{ summary.confidence }}</td>
-            </tr>
+                <tr>
+                    <th>Unique Animal Types</th>
+                    <td>{{ summary.unique }}</td>
+                </tr>
 
-            <tr>
-                <th>Average Inference Time</th>
-                <td>{{ summary.time }}</td>
-            </tr>
+                <tr>
+                    <th>Average Confidence</th>
+                    <td>{{ summary.confidence }}</td>
+                </tr>
 
-        </table>
+                <tr>
+                    <th>Average Inference Time</th>
+                    <td>{{ summary.time }}</td>
+                </tr>
 
-        {% else %}
+            </table>
 
-        <p>No summary available.</p>
+            {% else %}
 
-        {% endif %}
+            <p>No summary available.</p>
+
+            {% endif %}
+
+        </div>
 
     </div>
 
@@ -215,49 +234,41 @@
 
         <h2>📈 Detection Graph</h2>
 
-        {% if graph %}
+        <div id="graphContainer">
 
-        <img
-            src="{{ graph }}"
-            alt="Detection Graph"
-            style="width:100%; max-width:800px; display:block; margin:auto; border-radius:10px;">
+            {% if graph %}
 
-        {% else %}
+            <img
+                src="{{ graph }}"
+                alt="Detection Graph"
+                style="width:100%; max-width:800px; display:block; margin:auto; border-radius:10px;">
 
-        <p>No graph available.</p>
+            {% else %}
 
-        {% endif %}
+            <p>No graph available.</p>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <!-- Upload History -->
+    <div class="card">
+
+        <h2>🕒 Upload History</h2>
+
+        <p>View, and clear your upload history on a dedicated page.</p>
+
+        <a href="/history" target="_blank" rel="noopener">
+            <button>🕒 View Upload History</button>
+        </a>
 
     </div>
 
 </div>
 
-<script>
-
-let webcamRunning = false;
-
-function toggleWebcam() {
-
-    const card = document.getElementById("webcamCard");
-    const img = document.getElementById("webcamFeed");
-
-    if (!webcamRunning) {
-
-        img.src = "/video_feed";
-        card.style.display = "block";
-        webcamRunning = true;
-
-    } else {
-
-        img.src = "";
-        card.style.display = "none";
-        webcamRunning = false;
-
-    }
-
-}
-
-</script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 
 </body>
 
