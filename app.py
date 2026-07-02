@@ -1,3 +1,4 @@
+from graph import generate_bar_graph
 from flask import (
     Flask,
     render_template,
@@ -5,7 +6,8 @@ from flask import (
     redirect,
     send_file,
     Response,
-    session
+    session,
+    jsonify
 )
 from flasgger import Swagger
 
@@ -16,7 +18,11 @@ from database import (
     register_user,
     login_user,
     get_user_id,
-    save_uploaded_image
+    save_uploaded_image,
+    get_upload_history,
+    get_detection_results,
+    delete_uploaded_image,
+    get_user_profile
 )
 
 import os
@@ -43,6 +49,7 @@ def home():
 
     return render_template(
         "index.html",
+        graph=None,
         detections=None,
         animal_count=None,
         summary=None,
@@ -114,8 +121,6 @@ def logout():
 
 # ---------------- UPLOAD ----------------
 
-# ---------------- UPLOAD ----------------
-
 @app.route("/upload", methods=["POST"])
 def upload():
 
@@ -139,7 +144,7 @@ def upload():
             file.save(filepath)
 
             # Save image details to MySQL
-            save_uploaded_image(
+            image_id = save_uploaded_image(
                 user_id,
                 file.filename,
                 filepath
@@ -158,9 +163,11 @@ def detect():
         return "Please upload one or more images before running detection."
 
     results = detect_animals("uploads")
+    graph_path = generate_bar_graph(results["animal_count"])
 
     return render_template(
         "index.html",
+        graph=graph_path,
         detections=results["detections"],
         animal_count=results["animal_count"],
         summary=results["summary"],
@@ -266,15 +273,312 @@ def clear_session():
 
     return render_template(
         "index.html",
+        graph=None,
         detections=None,
         animal_count=None,
         summary=None,
         webcam=False,
         username=session["user"]
+    )   
+@app.route("/api/register", methods=["POST"])
+def api_register():
+    """
+    Register User
+    ---
+    tags:
+      - Authentication
+    summary: Register a new user
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            username:
+              type: string
+            email:
+              type: string
+            password:
+              type: string
+    responses:
+      201:
+        description: User registered successfully
+      400:
+        description: Registration failed
+    """
+
+    data = request.get_json()
+
+    success = register_user(
+        data["username"],
+        data["email"],
+        data["password"]
     )
 
+    if success:
+        return jsonify({
+            "success": True,
+            "message": "User registered successfully."
+        }), 201
 
-# ---------------- RUN ----------------
+    return jsonify({
+        "success": False,
+        "message": "Username or Email already exists."
+    }), 400
+
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    """
+    Login User
+    ---
+    tags:
+      - Authentication
+    summary: Login a user
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          properties:
+            username:
+              type: string
+            password:
+              type: string
+    responses:
+      200:
+        description: Login successful
+      401:
+        description: Invalid credentials
+    """
+
+    data = request.get_json()
+
+    user = login_user(
+        data["username"],
+        data["password"]
+    )
+
+    if user:
+        session["user"] = user
+
+        return jsonify({
+            "success": True,
+            "message": "Login successful."
+        }), 200
+
+    return jsonify({
+        "success": False,
+        "message": "Invalid username or password."
+    }), 401
+@app.route("/api/logout", methods=["POST"])
+def api_logout():
+    """
+    Logout User
+    ---
+    tags:
+      - Authentication
+    summary: Logout current user
+    responses:
+      200:
+        description: Logout successful
+    """
+
+    session.clear()
+
+    return jsonify({
+        "success": True,
+        "message": "Logged out successfully."
+    })
+@app.route("/api/upload", methods=["POST"])
+def api_upload():
+    """
+    Upload Images
+    ---
+    tags:
+      - Images
+    summary: Upload one or more images.
+    consumes:
+      - multipart/form-data
+    parameters:
+      - in: formData
+        name: images
+        type: file
+        required: true
+        description: Images to upload.
+    responses:
+      200:
+        description: Images uploaded successfully.
+      401:
+        description: User not logged in.
+    """
+
+    if "user" not in session:
+        return jsonify({
+            "success": False,
+            "message": "Please login first."
+        }), 401
+
+    files = request.files.getlist("images")
+
+    if not files:
+        return jsonify({
+            "success": False,
+            "message": "No images uploaded."
+        }), 400
+
+    user_id = get_user_id(session["user"])
+
+    uploaded = []
+
+    for file in files:
+
+        if file.filename != "":
+
+            filepath = os.path.join(
+                app.config["UPLOAD_FOLDER"],
+                file.filename
+            )
+
+            file.save(filepath)
+
+            image_id = save_uploaded_image(
+                user_id,
+                file.filename,
+                filepath
+            )
+
+            uploaded.append({
+                "image_id": image_id,
+                "filename": file.filename
+            })
+
+    return jsonify({
+        "success": True,
+        "uploaded": uploaded
+    }), 200
+
+@app.route("/api/detect", methods=["GET"])
+def api_detect():
+    """
+    Detect Animals
+    ---
+    tags:
+      - Detection
+    summary: Run YOLO detection.
+    responses:
+      200:
+        description: Detection completed.
+      400:
+        description: No uploaded images found.
+    """
+
+    if "user" not in session:
+        return jsonify({
+            "success": False,
+            "message": "Please login first."
+        }), 401
+
+    if not os.listdir(app.config["UPLOAD_FOLDER"]):
+        return jsonify({
+            "success": False,
+            "message": "Upload images first."
+        }), 400
+
+    results = detect_animals("uploads")
+
+    return jsonify(results), 200
+
+@app.route("/api/history", methods=["GET"])
+def api_history():
+    """
+    Upload History
+    ---
+    tags:
+      - Images
+    summary: View uploaded image history.
+    responses:
+      200:
+        description: Upload history.
+    """
+
+    history = get_upload_history()
+
+    return jsonify(history), 200
+
+@app.route("/api/results/<int:image_id>", methods=["GET"])
+def api_results(image_id):
+    """
+    Detection Results
+    ---
+    tags:
+      - Detection
+    summary: Get detections of one image.
+    parameters:
+      - in: path
+        name: image_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Detection results.
+    """
+
+    results = get_detection_results(image_id)
+
+    return jsonify(results), 200
+
+@app.route("/api/profile", methods=["GET"])
+def api_profile():
+    """
+    User Profile
+    ---
+    tags:
+      - User
+    summary: Get current user's profile.
+    responses:
+      200:
+        description: User details.
+    """
+
+    if "user" not in session:
+        return jsonify({
+            "success": False
+        }), 401
+
+    profile = get_user_profile(session["user"])
+
+    return jsonify(profile), 200
+
+@app.route("/api/image/<int:image_id>", methods=["DELETE"])
+def api_delete_image(image_id):
+    """
+    Delete Image
+    ---
+    tags:
+      - Images
+    summary: Delete uploaded image.
+    parameters:
+      - in: path
+        name: image_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Image deleted.
+    """
+
+    delete_uploaded_image(image_id)
+
+    return jsonify({
+        "success": True,
+        "message": "Image deleted successfully."
+    }), 200
+
 # ---------------- TEST API ----------------
 
 @app.route("/api/test", methods=["GET"])
@@ -299,6 +603,18 @@ def api_test():
     return {
         "message": "Swagger is working!"
     }
-if __name__ == "__main__":
+@app.route("/download_graph")
+def download_graph():
 
+    graph_path = "static/graphs/animal_detection_graph.png"
+
+    if os.path.exists(graph_path):
+
+        return send_file(
+            graph_path,
+            as_attachment=True
+        )
+
+    return "No graph generated."
+if __name__ == "__main__":
     app.run(debug=True)

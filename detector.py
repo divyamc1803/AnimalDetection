@@ -1,3 +1,4 @@
+from database import get_image_id, save_detection_result
 import csv
 from ultralytics import YOLO
 
@@ -71,6 +72,7 @@ def detect_animals(source="images"):
     for result in results:
 
         filename = result.path.split("/")[-1]
+        image_id = get_image_id(filename)
 
         total_images += 1
 
@@ -106,6 +108,12 @@ def detect_animals(source="images"):
             cls = int(box.cls[0])
             name = result.names[cls]
             conf = float(box.conf[0]) * 100
+            if image_id is not None:
+                save_detection_result(
+                    image_id,
+                    name,
+                    conf
+                )
 
             # Confidence Status
             if conf >= 95:

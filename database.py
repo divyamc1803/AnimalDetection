@@ -168,5 +168,150 @@ def save_uploaded_image(user_id, image_name, image_path):
 
     conn.commit()
 
+    image_id = cursor.lastrowid
+
     cursor.close()
     conn.close()
+
+    return image_id
+ # ---------------- SAVE DETECTION RESULT ----------------
+
+def save_detection_result(image_id, animal_name, confidence):
+
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO DetectionResults
+        (ImageID, AnimalName, Confidence)
+        VALUES (%s, %s, %s)
+        """,
+        (
+            image_id,
+            animal_name,
+            confidence
+        )
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+    # ---------------- GET IMAGE ID ----------------
+
+def get_image_id(image_name):
+
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT ImageID
+        FROM UploadedImages
+        WHERE ImageName = %s
+        ORDER BY ImageID DESC
+        LIMIT 1
+        """,
+        (image_name,)
+    )
+
+    row = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if row:
+        return row[0]
+
+    return None
+
+# ---------------- GET UPLOAD HISTORY ----------------
+
+def get_upload_history():
+
+    conn = connect_db()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT
+            ImageID,
+            UserID,
+            ImageName,
+            ImagePath,
+            UploadedAt
+        FROM UploadedImages
+        ORDER BY UploadedAt DESC
+    """)
+
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return rows
+
+# ---------------- GET DETECTION RESULTS ----------------
+
+def get_detection_results(image_id):
+
+    conn = connect_db()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT
+            DetectionID,
+            AnimalName,
+            Confidence,
+            CreatedAt
+        FROM DetectionResults
+        WHERE ImageID = %s
+    """, (image_id,))
+
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return rows
+
+# ---------------- DELETE IMAGE ----------------
+
+def delete_uploaded_image(image_id):
+
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        DELETE FROM UploadedImages
+        WHERE ImageID = %s
+    """, (image_id,))
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    # ---------------- GET USER PROFILE ----------------
+
+def get_user_profile(username):
+
+    conn = connect_db()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT
+            UserID,
+            Username,
+            Email,
+            CreatedAt
+        FROM Users
+        WHERE Username = %s
+    """, (username,))
+
+    row = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    return row

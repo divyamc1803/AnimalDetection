@@ -2,15 +2,10 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Animal Detection System</title>
-
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
 </head>
 
 <body>
@@ -18,33 +13,21 @@
 <div class="container">
 
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-
         <div>
-
             <h1>🐾 Animal Detection System</h1>
-
-            <p class="subtitle">
-                AI Powered Animal Detection using YOLOv11
-            </p>
-
+            <p class="subtitle">AI Powered Animal Detection using YOLOv11</p>
         </div>
 
         <div style="text-align:right;">
-
-            <p>
-                <strong>Welcome, {{ username }}</strong>
-            </p>
+            <p><strong>Welcome, {{ username }}</strong></p>
 
             <a href="/logout">
                 <button>Logout</button>
             </a>
-
         </div>
-
     </div>
 
     <!-- Upload Images -->
-
     <div class="card">
 
         <h2>📁 Upload Images</h2>
@@ -69,7 +52,6 @@
     </div>
 
     <!-- Detection -->
-
     <div class="card">
 
         <h2>🤖 Detection</h2>
@@ -79,15 +61,19 @@
         </button>
 
         <button onclick="toggleWebcam()">
-    🎥 Webcam Detection
-</button>
+            🎥 Webcam Detection
+        </button>
 
         <button onclick="window.location.href='/download_csv'">
-            Download CSV
+            📄 Download CSV
         </button>
 
         <button onclick="window.location.href='/download_pdf'">
-            Download PDF
+            📑 Download PDF
+        </button>
+
+        <button onclick="window.location.href='/download_graph'">
+            📊 Download Graph
         </button>
 
         <button onclick="window.location.href='/clear_session'">
@@ -97,23 +83,18 @@
     </div>
 
     <!-- Webcam -->
+    <div class="card" id="webcamCard" style="display:none;">
 
-    <div
-    class="card"
-    id="webcamCard"
-    style="display:none;">
+        <h2>🎥 Live Webcam Detection</h2>
 
-    <h2>🎥 Live Webcam Detection</h2>
+        <img
+            id="webcamFeed"
+            width="900"
+            style="border-radius:15px;">
 
-    <img
-        id="webcamFeed"
-        width="900"
-        style="border-radius:15px;">
-
-</div>
+    </div>
 
     <!-- Detection Results -->
-
     <div class="card">
 
         <h2>📋 Detection Results</h2>
@@ -153,7 +134,6 @@
     </div>
 
     <!-- Animal Count -->
-
     <div class="card">
 
         <h2>🐾 Animal Count</h2>
@@ -187,7 +167,6 @@
     </div>
 
     <!-- Project Summary -->
-
     <div class="card">
 
         <h2>📊 Project Summary</h2>
@@ -231,6 +210,26 @@
 
     </div>
 
+    <!-- Detection Graph -->
+    <div class="card">
+
+        <h2>📈 Detection Graph</h2>
+
+        {% if graph %}
+
+        <img
+            src="{{ graph }}"
+            alt="Detection Graph"
+            style="width:100%; max-width:800px; display:block; margin:auto; border-radius:10px;">
+
+        {% else %}
+
+        <p>No graph available.</p>
+
+        {% endif %}
+
+    </div>
+
 </div>
 
 <script>
@@ -245,17 +244,13 @@ function toggleWebcam() {
     if (!webcamRunning) {
 
         img.src = "/video_feed";
-
         card.style.display = "block";
-
         webcamRunning = true;
 
     } else {
 
         img.src = "";
-
         card.style.display = "none";
-
         webcamRunning = false;
 
     }
@@ -266,4 +261,4 @@ function toggleWebcam() {
 
 </body>
 
-</html>l:
+</html>
