@@ -49,3 +49,18 @@ CREATE TABLE IF NOT EXISTS DetectionResults (
 -- Helpful indexes for lookups the app does often
 CREATE INDEX idx_uploadedimages_userid ON UploadedImages(UserID);
 CREATE INDEX idx_detectionresults_imageid ON DetectionResults(ImageID);
+
+-- ---------------- REFRESH TOKENS ----------------
+
+CREATE TABLE IF NOT EXISTS RefreshTokens (
+    Id INT AUTO_INCREMENT PRIMARY KEY,
+    UserId INT NOT NULL,
+    TokenHash VARCHAR(255) NOT NULL,
+    ExpiryDate DATETIME NOT NULL,
+    IsRevoked BOOLEAN DEFAULT FALSE,
+    IsUsed BOOLEAN DEFAULT FALSE,
+    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (UserId) REFERENCES Users(UserID) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_refreshtokens_tokenhash ON RefreshTokens(TokenHash);

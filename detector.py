@@ -2,9 +2,8 @@ from database import get_image_id, save_detection_result
 import csv
 from ultralytics import YOLO
 
-# Only detect persons and animals (COCO class IDs)
+# Only detect animals (COCO class IDs, excluding 0=person)
 ALLOWED_CLASSES = [
-    0,   # person
     14,  # bird
     15,  # cat
     16,  # dog

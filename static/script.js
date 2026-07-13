@@ -4,6 +4,19 @@ console.log("Animal Detection System Loaded");
 
 // ---------------- HELPERS ----------------
 
+function getToken() { return localStorage.getItem("ad_token"); }
+function saveToken(t) { localStorage.setItem("ad_token", t); }
+function removeToken() { localStorage.removeItem("ad_token"); }
+
+function getRefreshToken() { return localStorage.getItem("ad_refresh_token"); }
+function saveRefreshToken(t) { localStorage.setItem("ad_refresh_token", t); }
+function removeRefreshToken() { localStorage.removeItem("ad_refresh_token"); }
+
+const path = window.location.pathname;
+if (!getToken() && path !== '/login' && path !== '/register') {
+    window.location.href = '/login';
+}
+
 function showMessage(elementId, text, type) {
 
     const el = document.getElementById(elementId);
@@ -13,15 +26,47 @@ function showMessage(elementId, text, type) {
     el.innerHTML = `<p style="color:${type === "error" ? "#f87171" : "#4ade80"}; margin-bottom:15px;">${text}</p>`;
 }
 
+
 async function apiRequest(url, options = {}) {
 
+    const headers = options.headers || {};
+    const token = getToken();
+    
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
-        credentials: "same-origin",
-        ...options
+        ...options,
+        headers
     });
 
-    let data = null;
+    if (response.status === 401) {
+        const refresh = getRefreshToken();
+        if (refresh && url !== "/api/refresh") {
+            const refreshRes = await fetch("/api/refresh", {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${refresh}` }
+            });
+            if (refreshRes.ok) {
+                const refreshData = await refreshRes.json();
+                if (refreshData.success && refreshData.token) {
+                    saveToken(refreshData.token);
+                    headers["Authorization"] = `Bearer ${refreshData.token}`;
+                    const retryRes = await fetch(url, { ...options, headers });
+                    let retryData = null;
+                    try { retryData = await retryRes.json(); } catch(e) {}
+                    return { ok: retryRes.ok, status: retryRes.status, data: retryData };
+                }
+            }
+        }
+        removeToken();
+        removeRefreshToken();
+        window.location.href = "/login";
+        return { ok: false, status: 401, data: null };
+    }
 
+    let data = null;
     try {
         data = await response.json();
     } catch (err) {
@@ -59,6 +104,10 @@ if (loginForm) {
 
         if (ok && data && data.success) {
 
+            saveToken(data.token);
+            if (data.refresh_token) {
+                saveRefreshToken(data.refresh_token);
+            }
             showMessage("loginMessage", "Login successful. Redirecting...", "success");
 
             window.location.href = "/";
@@ -156,8 +205,7 @@ if (uploadForm) {
             showMessage("uploadMessage", `Uploaded ${data.uploaded.length} image(s) successfully.`, "success");
 
             const list = document.getElementById("uploadedList");
-
-            list.innerHTML = "<ul>" + data.uploaded.map(u => `<li>${u.filename}</li>`).join("") + "</ul>";
+            if (list) list.innerHTML = "";
 
             uploadForm.reset();
 
@@ -224,7 +272,7 @@ function renderDetectionResults(detections) {
     let html = "<table><tr><th>Image</th><th>Animal</th><th>Confidence</th><th>Status</th><th>Inference Time</th></tr>";
 
     detections.forEach(d => {
-        html += `<tr><td>${d.image}</td><td>${d.animal}</td><td>${d.confidence}</td><td>${d.status}</td><td>${d.time}</td></tr>`;
+        html += `<tr><td><a href="/uploads/${d.image}" target="_blank" style="color: inherit; text-decoration: none; cursor: pointer;">${d.image}</a></td><td>${d.animal}</td><td>${d.confidence}</td><td>${d.status}</td><td>${d.time}</td></tr>`;
     });
 
     html += "</table>";
@@ -381,26 +429,136 @@ if (refreshHistoryBtn) {
 // ---------------- WEBCAM ----------------
 
 let webcamRunning = false;
+let webcamStream = null;
+let webcamTimer = null;
+let isProcessingFrame = false;
+let lastBoxes = [];   // Latest YOLO detections — updated every 1s
 
-function toggleWebcam() {
+// Color map for labels
+const LABEL_COLORS = {
+    person: "#ff4444",
+    cat: "#44aaff", dog: "#44aaff",
+    bird: "#ffaa00", horse: "#ffaa00", cow: "#ffaa00",
+    sheep: "#aa44ff", elephant: "#aa44ff", bear: "#aa44ff",
+    zebra: "#00ffaa", giraffe: "#00ffaa"
+};
+function colorFor(label) { return LABEL_COLORS[label.toLowerCase()] || "#00ff00"; }
 
-    const card = document.getElementById("webcamCard");
-    const img = document.getElementById("webcamFeed");
+// Draws the current YOLO boxes onto the overlay canvas
+function drawBoxes(canvas) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const W = canvas.width, H = canvas.height;
 
-    if (!card || !img) return;
+    for (const b of lastBoxes) {
+        const x = b.x1 * W, y = b.y1 * H;
+        const w = (b.x2 - b.x1) * W, h = (b.y2 - b.y1) * H;
+        const color = colorFor(b.label);
 
-    if (!webcamRunning) {
+        // Box
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(x, y, w, h);
 
-        img.src = "/video_feed";
-        card.style.display = "block";
-        webcamRunning = true;
+        // Label background
+        const label = `${b.label} ${Math.round(b.conf * 100)}%`;
+        ctx.font = "bold 13px Inter, Arial, sans-serif";
+        const tw = ctx.measureText(label).width;
+        const ty = y > 22 ? y - 22 : y + h;
+        ctx.fillStyle = color;
+        ctx.fillRect(x - 1, ty, tw + 10, 20);
 
-    } else {
+        // Label text
+        ctx.fillStyle = "#000";
+        ctx.fillText(label, x + 4, ty + 14);
+    }
+}
 
-        img.src = "";
-        card.style.display = "none";
+async function toggleWebcam() {
+    const card   = document.getElementById("webcamCard");
+    const video  = document.getElementById("webcamVideo");
+    const canvas = document.getElementById("webcamCanvas");
+
+    if (!card || !video || !canvas) return;
+
+    // ---- STOP ----
+    if (webcamRunning) {
         webcamRunning = false;
-
+        clearInterval(webcamTimer);
+        if (webcamStream) webcamStream.getTracks().forEach(t => t.stop());
+        video.srcObject = null;
+        lastBoxes = [];
+        canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+        card.style.display = "none";
+        return;
     }
 
+    // ---- START ----
+    try {
+        webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+    } catch (e) {
+        alert("Camera permission denied. Please allow camera access in your browser.");
+        return;
+    }
+
+    // <video> renders the live feed natively at full FPS — zero JS overhead
+    video.srcObject = webcamStream;
+    video.play();
+    card.style.display = "block";
+    webcamRunning = true;
+
+    // Wait for real dimensions
+    await new Promise(resolve => {
+        if (video.videoWidth > 0) { resolve(); return; }
+        video.addEventListener("loadedmetadata", resolve, { once: true });
+    });
+
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Off-screen capture canvas
+    const capture = document.createElement("canvas");
+    capture.width  = video.videoWidth;
+    capture.height = video.videoHeight;
+    const captureCtx = capture.getContext("2d");
+
+    // Every 1s: send a frame → get JSON boxes → redraw overlay
+    // The <video> element keeps playing smoothly regardless
+    webcamTimer = setInterval(async () => {
+        if (!webcamRunning || isProcessingFrame || video.paused || video.readyState < 2) return;
+        isProcessingFrame = true;
+
+        captureCtx.drawImage(video, 0, 0, capture.width, capture.height);
+        capture.toBlob(async (blob) => {
+            if (!blob || !webcamRunning) { isProcessingFrame = false; return; }
+
+            const fd = new FormData();
+            fd.append("image", blob, "frame.jpg");
+
+            try {
+                const res = await fetch("/api/detect_frame", {
+                    method: "POST",
+                    body: fd,
+                    headers: { "Authorization": "Bearer " + (getToken() || "") }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    lastBoxes = data.boxes || [];
+                    drawBoxes(canvas);
+                }
+            } catch(e) { /* skip */ }
+            finally { isProcessingFrame = false; }
+
+        }, "image/jpeg", 0.6); // 60% quality — only used for YOLO input, never displayed
+
+    }, 1000);
 }
+
+function handleLogout() {
+    removeToken();
+    removeRefreshToken();
+    window.location.href = "/login";
+}
+
+
+

@@ -21,9 +21,7 @@
         <div style="text-align:right;">
             <p><strong>Welcome, {{ username }}</strong></p>
 
-            <a href="/logout">
-                <button>Logout</button>
-            </a>
+            <button onclick="handleLogout()">Logout</button>
         </div>
     </div>
 
@@ -94,10 +92,15 @@
 
         <h2>🎥 Live Webcam Detection</h2>
 
-        <img
-            id="webcamFeed"
-            width="900"
-            style="border-radius:15px;">
+        <div style="position:relative; display:inline-block; width:100%; max-width:900px; margin:0 auto;">
+            <!-- Raw live video feed -->
+            <video id="webcamVideo"
+                autoplay playsinline muted
+                style="width:100%; border-radius:15px; display:block;"></video>
+            <!-- YOLO boxes drawn on top -->
+            <canvas id="webcamCanvas"
+                style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:15px; pointer-events:none;"></canvas>
+        </div>
 
     </div>
 
@@ -123,7 +126,7 @@
                 {% for d in detections %}
 
                 <tr>
-                    <td>{{ d.image }}</td>
+                    <td><a href="/uploads/{{ d.image }}" target="_blank" style="color: inherit; text-decoration: none; cursor: pointer;">{{ d.image }}</a></td>
                     <td>{{ d.animal }}</td>
                     <td>{{ d.confidence }}</td>
                     <td>{{ d.status }}</td>

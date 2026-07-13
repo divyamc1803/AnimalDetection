@@ -348,3 +348,206 @@ def get_user_profile(username):
     conn.close()
 
     return row
+
+
+# ---------------- REFRESH TOKEN OPERATIONS ----------------
+
+import hashlib
+
+def hash_token(token: str) -> str:
+    """
+    Cryptographically hashes a refresh token string using SHA-256.
+    """
+    return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+def save_refresh_token(user_id, token_hash, expiry_date):
+    """
+    Saves a new hashed refresh token in the database.
+    """
+    conn = connect_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            INSERT INTO RefreshTokens (UserId, TokenHash, ExpiryDate, IsRevoked, IsUsed)
+            VALUES (%s, %s, %s, FALSE, FALSE)
+            """,
+            (user_id, token_hash, expiry_date)
+        )
+        conn.commit()
+        return True
+    except mysql.connector.Error as e:
+        print(f"Error saving refresh token: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_refresh_token(token_hash):
+    """
+    Retrieves refresh token details by its hash.
+    """
+    conn = connect_db()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT Id, UserId, TokenHash, ExpiryDate, IsRevoked, IsUsed, CreatedAt
+            FROM RefreshTokens
+            WHERE TokenHash = %s
+            """,
+            (token_hash,)
+        )
+        row = cursor.fetchone()
+        return row
+    except mysql.connector.Error as e:
+        print(f"Error fetching refresh token: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+def mark_refresh_token_used(token_id):
+    """
+    Marks a refresh token as used.
+    """
+    conn = connect_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            UPDATE RefreshTokens
+            SET IsUsed = TRUE
+            WHERE Id = %s
+            """,
+            (token_id,)
+        )
+        conn.commit()
+        return True
+    except mysql.connector.Error as e:
+        print(f"Error marking refresh token as used: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def revoke_refresh_token(token_id):
+    """
+    Revokes a specific refresh token.
+    """
+    conn = connect_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            UPDATE RefreshTokens
+            SET IsRevoked = TRUE
+            WHERE Id = %s
+            """,
+            (token_id,)
+        )
+        conn.commit()
+        return True
+    except mysql.connector.Error as e:
+        print(f"Error revoking refresh token: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def revoke_all_user_tokens(user_id):
+    """
+    Revokes all refresh tokens for a user (used during reuse detection).
+    """
+    conn = connect_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            UPDATE RefreshTokens
+            SET IsRevoked = TRUE
+            WHERE UserId = %s AND IsRevoked = FALSE
+            """,
+            (user_id,)
+        )
+        conn.commit()
+        return True
+    except mysql.connector.Error as e:
+        print(f"Error revoking all tokens for user {user_id}: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_active_refresh_token(user_id):
+    conn = connect_db()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT Id, TokenHash, ExpiryDate FROM RefreshTokens
+            WHERE UserId = %s AND IsRevoked = FALSE AND ExpiryDate > NOW()
+            LIMIT 1
+            """,
+            (user_id,)
+        )
+        return cursor.fetchone()
+    except Exception as e:
+        print(f"Error getting active refresh token: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+def save_access_token(user_id, token, expiry_date):
+    conn = connect_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            INSERT INTO AccessTokens (UserId, TokenHash, ExpiryDate, IsRevoked)
+            VALUES (%s, %s, %s, FALSE)
+            """,
+            (user_id, token, expiry_date)
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error saving access token: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def is_access_token_revoked(token):
+    conn = connect_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT Id FROM AccessTokens WHERE TokenHash = %s AND IsRevoked = TRUE",
+            (token,)
+        )
+        return cursor.fetchone() is not None
+    except Exception as e:
+        print(f"Error checking access token revocation: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def revoke_access_token(token):
+    conn = connect_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE AccessTokens SET IsRevoked = TRUE WHERE TokenHash = %s",
+            (token,)
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error revoking access token: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
